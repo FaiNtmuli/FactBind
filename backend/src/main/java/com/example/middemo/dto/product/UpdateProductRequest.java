@@ -20,7 +20,7 @@ public record UpdateProductRequest(
         String sku,
 
         @NotNull(message = "must not be null")
-        @DecimalMin(value = "0.01", message = "must be greater than 0")
+        @DecimalMin(value = "0.01", message = "must be greater than or equal to 0.01")
         @Digits(integer = 10, fraction = 2, message = "must have at most 10 integer digits and 2 decimals")
         BigDecimal price,
 
