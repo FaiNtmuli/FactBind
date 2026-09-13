@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -101,6 +103,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse("RESOURCE_NOT_FOUND", "No endpoint matches " + ex.getResourcePath()));
+    }
+
+    /**
+     * 路径存在但 HTTP 方法不对（例如用 POST 打一个只支持 GET 的接口）。
+     *
+     * <p>必须显式处理：否则会被下面的 {@code Exception} 兜底捕获，把 405 变成 500，
+     * 让"接口不存在/路径变了"这类问题变得难以诊断。
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(new ErrorResponse(
+                        "METHOD_NOT_ALLOWED",
+                        "HTTP method " + ex.getMethod() + " is not supported by this endpoint"));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(new ErrorResponse(
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        "Content-Type " + ex.getContentType() + " is not supported"));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

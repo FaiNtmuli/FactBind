@@ -100,6 +100,24 @@ class UserControllerTest {
     }
 
     @Test
+    @DisplayName("PATCH /api/users returns 405 instead of falling through to 500")
+    void methodNotAllowedIsNotAServerError() throws Exception {
+        mockMvc.perform(patch("/api/users"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"));
+    }
+
+    @Test
+    @DisplayName("POST /api/users with an unreadable Content-Type returns 415")
+    void unsupportedMediaTypeIsNotAServerError() throws Exception {
+        mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_XML)
+                        .content("<user/>"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"));
+    }
+
+    @Test
     @DisplayName("GET /api/users/{id} returns the user")
     void getUserById() throws Exception {
         given(userService.getUser(1L)).willReturn(sampleUser(1L, UserStatus.ACTIVE));
