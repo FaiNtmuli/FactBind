@@ -7,6 +7,7 @@ import com.example.middemo.dto.user.UserResponse;
 import com.example.middemo.entity.ProductStatus;
 import com.example.middemo.service.ProductService;
 import com.example.middemo.service.UserService;
+import com.example.middemo.web.ApiPaths;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,7 +76,7 @@ class OrderApiIntegrationTest {
                 }
                 """.formatted(user.id(), product.id());
 
-        MvcResult created = mockMvc.perform(post("/api/orders")
+        MvcResult created = mockMvc.perform(post(ApiPaths.ORDERS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody))
                 .andExpect(status().isCreated())
@@ -109,18 +110,18 @@ class OrderApiIntegrationTest {
         UserResponse user = createUser();
         ProductResponse product = createProduct(3);
 
-        mockMvc.perform(post("/api/orders")
+        mockMvc.perform(post(ApiPaths.ORDERS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"userId": %d, "items": [{"productId": %d, "quantity": 3}]}
                                 """.formatted(user.id(), product.id())))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/products/" + product.id()))
+        mockMvc.perform(get(ApiPaths.withId(ApiPaths.PRODUCT_BY_ID, product.id())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stock").value(0));
 
-        mockMvc.perform(post("/api/orders")
+        mockMvc.perform(post(ApiPaths.ORDERS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"userId": %d, "items": [{"productId": %d, "quantity": 1}]}
@@ -132,22 +133,22 @@ class OrderApiIntegrationTest {
     @Test
     @DisplayName("GET /api/dashboard/summary and the list endpoints answer over HTTP")
     void dashboardAndListsAnswerOverHttp() throws Exception {
-        mockMvc.perform(get("/api/dashboard/summary"))
+        mockMvc.perform(get(ApiPaths.DASHBOARD_SUMMARY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userCount").isNumber());
 
-        mockMvc.perform(get("/api/users").param("size", "2"))
+        mockMvc.perform(get(ApiPaths.USERS).param("size", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value(2));
 
-        mockMvc.perform(get("/api/products").param("page", "0").param("size", "3"))
+        mockMvc.perform(get(ApiPaths.PRODUCTS).param("page", "0").param("size", "3"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value(3));
 
-        mockMvc.perform(get("/api/orders").param("status", "CREATED"))
+        mockMvc.perform(get(ApiPaths.ORDERS).param("status", "CREATED"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/dashboard/recent-orders").param("limit", "3"))
+        mockMvc.perform(get(ApiPaths.DASHBOARD_RECENT_ORDERS).param("limit", "3"))
                 .andExpect(status().isOk());
     }
 

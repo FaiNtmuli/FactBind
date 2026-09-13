@@ -6,6 +6,7 @@ import com.example.middemo.entity.ProductStatus;
 import com.example.middemo.exception.DuplicateSkuException;
 import com.example.middemo.exception.ProductNotFoundException;
 import com.example.middemo.service.ProductService;
+import com.example.middemo.web.ApiPaths;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +53,7 @@ class ProductControllerTest {
         given(productService.searchProducts("keyboard", ProductStatus.ON_SALE, 1, 10))
                 .willReturn(new PageResponse<>(List.of(sampleProduct(3L, ProductStatus.ON_SALE)), 1, 10, 11, 2, false, true));
 
-        mockMvc.perform(get("/api/products")
+        mockMvc.perform(get(ApiPaths.PRODUCTS)
                         .param("keyword", "keyboard")
                         .param("status", "ON_SALE")
                         .param("page", "1")
@@ -68,7 +69,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("GET /api/products returns 400 for an invalid page value")
     void listProductsRejectsNegativePage() throws Exception {
-        mockMvc.perform(get("/api/products").param("page", "-1"))
+        mockMvc.perform(get(ApiPaths.PRODUCTS).param("page", "-1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
@@ -78,7 +79,7 @@ class ProductControllerTest {
     void getProductNotFound() throws Exception {
         given(productService.getProduct(42L)).willThrow(new ProductNotFoundException(42L));
 
-        mockMvc.perform(get("/api/products/42"))
+        mockMvc.perform(get(ApiPaths.withId(ApiPaths.PRODUCT_BY_ID, 42)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
     }
@@ -92,9 +93,9 @@ class ProductControllerTest {
                 {"name":"Mechanical Keyboard","sku":"SKU-1001","price":129.90,"stock":25,"status":"ON_SALE"}
                 """;
 
-        mockMvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.PRODUCTS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/products/26"));
+                .andExpect(header().string("Location", ApiPaths.withId(ApiPaths.PRODUCT_BY_ID, 26)));
     }
 
     @Test
@@ -104,7 +105,7 @@ class ProductControllerTest {
                 {"name":"Mechanical Keyboard","sku":"SKU-1001","price":0,"stock":25}
                 """;
 
-        mockMvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.PRODUCTS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fields.price").exists());
     }
@@ -118,7 +119,7 @@ class ProductControllerTest {
                 {"name":"Mechanical Keyboard","sku":"SKU-1001","price":129.90,"stock":25}
                 """;
 
-        mockMvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.PRODUCTS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_SKU"));
     }
@@ -132,7 +133,7 @@ class ProductControllerTest {
                 {"name":"Mechanical Keyboard","sku":"SKU-1001","price":139.00,"stock":20}
                 """;
 
-        mockMvc.perform(put("/api/products/1").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(put(ApiPaths.withId(ApiPaths.PRODUCT_BY_ID, 1)).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
     }
@@ -142,7 +143,7 @@ class ProductControllerTest {
     void updateStock() throws Exception {
         given(productService.updateStock(eq(1L), any())).willReturn(sampleProduct(1L, ProductStatus.ON_SALE));
 
-        mockMvc.perform(patch("/api/products/1/stock")
+        mockMvc.perform(patch(ApiPaths.withId(ApiPaths.PRODUCT_STOCK, 1))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"stock\":0}"))
                 .andExpect(status().isOk());
@@ -153,7 +154,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("PATCH /api/products/{id}/stock returns 400 for a negative stock")
     void updateStockRejectsNegativeValue() throws Exception {
-        mockMvc.perform(patch("/api/products/1/stock")
+        mockMvc.perform(patch(ApiPaths.withId(ApiPaths.PRODUCT_STOCK, 1))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"stock\":-5}"))
                 .andExpect(status().isBadRequest())
@@ -165,7 +166,7 @@ class ProductControllerTest {
     void updateStatus() throws Exception {
         given(productService.updateStatus(eq(1L), any())).willReturn(sampleProduct(1L, ProductStatus.OFF_SALE));
 
-        mockMvc.perform(patch("/api/products/1/status")
+        mockMvc.perform(patch(ApiPaths.withId(ApiPaths.PRODUCT_STATUS, 1))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"OFF_SALE\"}"))
                 .andExpect(status().isOk())
@@ -175,7 +176,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("DELETE /api/products/{id} returns 204")
     void deleteProduct() throws Exception {
-        mockMvc.perform(delete("/api/products/1"))
+        mockMvc.perform(delete(ApiPaths.withId(ApiPaths.PRODUCT_BY_ID, 1)))
                 .andExpect(status().isNoContent());
 
         verify(productService).deleteProduct(1L);
@@ -184,7 +185,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("GET /api/products/not-a-number returns 400")
     void getProductWithBadPathVariable() throws Exception {
-        mockMvc.perform(get("/api/products/not-a-number"))
+        mockMvc.perform(get(ApiPaths.withId(ApiPaths.PRODUCT_BY_ID, "not-a-number")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"));
     }

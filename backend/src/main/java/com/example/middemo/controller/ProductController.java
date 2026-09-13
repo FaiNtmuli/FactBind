@@ -8,6 +8,7 @@ import com.example.middemo.dto.product.UpdateProductStatusRequest;
 import com.example.middemo.dto.product.UpdateProductStockRequest;
 import com.example.middemo.entity.ProductStatus;
 import com.example.middemo.service.ProductService;
+import com.example.middemo.web.ApiPaths;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -20,7 +21,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,7 +33,6 @@ import java.net.URI;
  * including two different {@code PATCH} endpoints for stock and sale status.
  */
 @RestController
-@RequestMapping("/api/products")
 @Validated
 public class ProductController {
 
@@ -44,7 +43,7 @@ public class ProductController {
     }
 
     /** {@code GET /api/products?keyword=keyboard&status=ON_SALE&page=0&size=20} */
-    @GetMapping
+    @GetMapping(ApiPaths.PRODUCTS)
     public PageResponse<ProductResponse> listProducts(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false) ProductStatus status,
@@ -55,22 +54,22 @@ public class ProductController {
     }
 
     /** {@code GET /api/products/{id}} */
-    @GetMapping("/{id}")
+    @GetMapping(ApiPaths.PRODUCT_BY_ID)
     public ProductResponse getProduct(@PathVariable("id") Long id) {
         return productService.getProduct(id);
     }
 
     /** {@code POST /api/products} */
-    @PostMapping
+    @PostMapping(ApiPaths.PRODUCTS)
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody CreateProductRequest request) {
         ProductResponse created = productService.createProduct(request);
         return ResponseEntity
-                .created(URI.create("/api/products/" + created.id()))
+                .created(URI.create(ApiPaths.withId(ApiPaths.PRODUCT_BY_ID, created.id())))
                 .body(created);
     }
 
     /** {@code PUT /api/products/{id}} */
-    @PutMapping("/{id}")
+    @PutMapping(ApiPaths.PRODUCT_BY_ID)
     public ProductResponse updateProduct(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateProductRequest request
@@ -79,7 +78,7 @@ public class ProductController {
     }
 
     /** {@code PATCH /api/products/{id}/stock} */
-    @PatchMapping("/{id}/stock")
+    @PatchMapping(ApiPaths.PRODUCT_STOCK)
     public ProductResponse updateStock(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateProductStockRequest request
@@ -88,7 +87,7 @@ public class ProductController {
     }
 
     /** {@code PATCH /api/products/{id}/status} */
-    @PatchMapping("/{id}/status")
+    @PatchMapping(ApiPaths.PRODUCT_STATUS)
     public ProductResponse updateStatus(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateProductStatusRequest request
@@ -97,7 +96,7 @@ public class ProductController {
     }
 
     /** {@code DELETE /api/products/{id}} */
-    @DeleteMapping("/{id}")
+    @DeleteMapping(ApiPaths.PRODUCT_BY_ID)
     public ResponseEntity<Void> deleteProduct(@PathVariable("id") Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();

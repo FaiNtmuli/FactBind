@@ -7,6 +7,7 @@ import com.example.middemo.dto.user.UpdateUserStatusRequest;
 import com.example.middemo.dto.user.UserResponse;
 import com.example.middemo.entity.UserStatus;
 import com.example.middemo.service.UserService;
+import com.example.middemo.web.ApiPaths;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,7 +32,6 @@ import java.net.URI;
  * (optional keyword / enum status, pagination) and JSON request bodies.
  */
 @RestController
-@RequestMapping("/api/users")
 @Validated
 public class UserController {
 
@@ -43,7 +42,7 @@ public class UserController {
     }
 
     /** {@code GET /api/users?keyword=tom&status=ACTIVE&page=0&size=20} */
-    @GetMapping
+    @GetMapping(ApiPaths.USERS)
     public PageResponse<UserResponse> listUsers(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false) UserStatus status,
@@ -54,22 +53,22 @@ public class UserController {
     }
 
     /** {@code GET /api/users/{id}} */
-    @GetMapping("/{id}")
+    @GetMapping(ApiPaths.USER_BY_ID)
     public UserResponse getUser(@PathVariable("id") Long id) {
         return userService.getUser(id);
     }
 
     /** {@code POST /api/users} */
-    @PostMapping
+    @PostMapping(ApiPaths.USERS)
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse created = userService.createUser(request);
         return ResponseEntity
-                .created(URI.create("/api/users/" + created.id()))
+                .created(URI.create(ApiPaths.withId(ApiPaths.USER_BY_ID, created.id())))
                 .body(created);
     }
 
     /** {@code PUT /api/users/{id}} */
-    @PutMapping("/{id}")
+    @PutMapping(ApiPaths.USER_BY_ID)
     public UserResponse updateUser(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateUserRequest request
@@ -78,7 +77,7 @@ public class UserController {
     }
 
     /** {@code PATCH /api/users/{id}/status} */
-    @PatchMapping("/{id}/status")
+    @PatchMapping(ApiPaths.USER_STATUS)
     public UserResponse updateUserStatus(
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateUserStatusRequest request
@@ -87,7 +86,7 @@ public class UserController {
     }
 
     /** {@code DELETE /api/users/{id}} */
-    @DeleteMapping("/{id}")
+    @DeleteMapping(ApiPaths.USER_BY_ID)
     public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();

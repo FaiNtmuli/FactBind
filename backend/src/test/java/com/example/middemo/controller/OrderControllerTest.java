@@ -7,6 +7,7 @@ import com.example.middemo.entity.OrderStatus;
 import com.example.middemo.exception.InvalidOrderStatusException;
 import com.example.middemo.exception.OrderNotFoundException;
 import com.example.middemo.service.OrderService;
+import com.example.middemo.web.ApiPaths;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +60,7 @@ class OrderControllerTest {
         given(orderService.searchOrders(1L, OrderStatus.PAID, 0, 20))
                 .willReturn(new PageResponse<>(List.of(sampleOrder(5L, OrderStatus.PAID)), 0, 20, 1, 1, true, true));
 
-        mockMvc.perform(get("/api/orders")
+        mockMvc.perform(get(ApiPaths.ORDERS)
                         .param("userId", "1")
                         .param("status", "PAID"))
                 .andExpect(status().isOk())
@@ -74,7 +75,7 @@ class OrderControllerTest {
     void getOrder() throws Exception {
         given(orderService.getOrder(5L)).willReturn(sampleOrder(5L, OrderStatus.CREATED));
 
-        mockMvc.perform(get("/api/orders/5"))
+        mockMvc.perform(get(ApiPaths.withId(ApiPaths.ORDER_BY_ID, 5)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CREATED"))
                 .andExpect(jsonPath("$.items[0].quantity").value(2));
@@ -85,7 +86,7 @@ class OrderControllerTest {
     void getOrderNotFound() throws Exception {
         given(orderService.getOrder(404L)).willThrow(new OrderNotFoundException(404L));
 
-        mockMvc.perform(get("/api/orders/404"))
+        mockMvc.perform(get(ApiPaths.withId(ApiPaths.ORDER_BY_ID, 404)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"));
     }
@@ -106,9 +107,9 @@ class OrderControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.ORDERS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/orders/100"))
+                .andExpect(header().string("Location", ApiPaths.withId(ApiPaths.ORDER_BY_ID, 100)))
                 .andExpect(jsonPath("$.totalAmount").exists());
     }
 
@@ -119,7 +120,7 @@ class OrderControllerTest {
                 {"userId": 1, "items": []}
                 """;
 
-        mockMvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.ORDERS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fields.items").value("must contain at least one item"));
     }
@@ -131,7 +132,7 @@ class OrderControllerTest {
                 {"userId": 1, "items": [{"productId": 10, "quantity": 0}]}
                 """;
 
-        mockMvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.ORDERS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.fields['items[0].quantity']").exists());
@@ -147,7 +148,7 @@ class OrderControllerTest {
                 {"userId": 1, "items": [{"productId": 10, "quantity": 5}]}
                 """;
 
-        mockMvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.ORDERS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"));
     }
@@ -158,7 +159,7 @@ class OrderControllerTest {
         given(orderService.updateOrderStatus(eq(5L), eq(false), any()))
                 .willReturn(sampleOrder(5L, OrderStatus.PAID));
 
-        mockMvc.perform(patch("/api/orders/5/status")
+        mockMvc.perform(patch(ApiPaths.withId(ApiPaths.ORDER_STATUS, 5))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"PAID\"}"))
                 .andExpect(status().isOk())
@@ -173,7 +174,7 @@ class OrderControllerTest {
         given(orderService.updateOrderStatus(eq(5L), eq(true), any()))
                 .willReturn(sampleOrder(5L, OrderStatus.COMPLETED));
 
-        mockMvc.perform(patch("/api/orders/5/status")
+        mockMvc.perform(patch(ApiPaths.withId(ApiPaths.ORDER_STATUS, 5))
                         .param("notify", "true")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"COMPLETED\"}"))
@@ -188,7 +189,7 @@ class OrderControllerTest {
         given(orderService.updateOrderStatus(eq(5L), any(), any()))
                 .willThrow(new InvalidOrderStatusException(5L, OrderStatus.CANCELLED, OrderStatus.PAID));
 
-        mockMvc.perform(patch("/api/orders/5/status")
+        mockMvc.perform(patch(ApiPaths.withId(ApiPaths.ORDER_STATUS, 5))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"PAID\"}"))
                 .andExpect(status().isConflict())
@@ -198,7 +199,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("PATCH /api/orders/{id}/status returns 400 when the body has no status")
     void updateOrderStatusRequiresBody() throws Exception {
-        mockMvc.perform(patch("/api/orders/5/status").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mockMvc.perform(patch(ApiPaths.withId(ApiPaths.ORDER_STATUS, 5)).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fields.status").exists());
     }
@@ -206,7 +207,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("DELETE /api/orders/{id} returns 204")
     void deleteOrder() throws Exception {
-        mockMvc.perform(delete("/api/orders/5"))
+        mockMvc.perform(delete(ApiPaths.withId(ApiPaths.ORDER_BY_ID, 5)))
                 .andExpect(status().isNoContent());
 
         verify(orderService).deleteOrder(5L);

@@ -6,6 +6,7 @@ import com.example.middemo.entity.UserStatus;
 import com.example.middemo.exception.DuplicateEmailException;
 import com.example.middemo.exception.UserNotFoundException;
 import com.example.middemo.service.UserService;
+import com.example.middemo.web.ApiPaths;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +56,7 @@ class UserControllerTest {
         given(userService.searchUsers(null, null, 0, 20))
                 .willReturn(new PageResponse<>(List.of(sampleUser(1L, UserStatus.ACTIVE)), 0, 20, 1, 1, true, true));
 
-        mockMvc.perform(get("/api/users"))
+        mockMvc.perform(get(ApiPaths.USERS))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(1))
                 .andExpect(jsonPath("$.content[0].email").value("alice@example.com"))
@@ -71,7 +72,7 @@ class UserControllerTest {
         given(userService.searchUsers("tom", UserStatus.ACTIVE, 2, 5))
                 .willReturn(new PageResponse<>(List.of(sampleUser(7L, UserStatus.ACTIVE)), 2, 5, 6, 2, false, true));
 
-        mockMvc.perform(get("/api/users")
+        mockMvc.perform(get(ApiPaths.USERS)
                         .param("keyword", "tom")
                         .param("status", "ACTIVE")
                         .param("page", "2")
@@ -86,7 +87,7 @@ class UserControllerTest {
     @Test
     @DisplayName("GET /api/users returns 400 when the status enum is unknown")
     void listUsersRejectsUnknownStatusEnum() throws Exception {
-        mockMvc.perform(get("/api/users").param("status", "NOT_A_STATUS"))
+        mockMvc.perform(get(ApiPaths.USERS).param("status", "NOT_A_STATUS"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"));
     }
@@ -94,7 +95,7 @@ class UserControllerTest {
     @Test
     @DisplayName("GET /api/users returns 400 when size is out of range")
     void listUsersRejectsSizeOutOfRange() throws Exception {
-        mockMvc.perform(get("/api/users").param("size", "1000"))
+        mockMvc.perform(get(ApiPaths.USERS).param("size", "1000"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
@@ -102,7 +103,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PATCH /api/users returns 405 instead of falling through to 500")
     void methodNotAllowedIsNotAServerError() throws Exception {
-        mockMvc.perform(patch("/api/users"))
+        mockMvc.perform(patch(ApiPaths.USERS))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"));
     }
@@ -110,7 +111,7 @@ class UserControllerTest {
     @Test
     @DisplayName("POST /api/users with an unreadable Content-Type returns 415")
     void unsupportedMediaTypeIsNotAServerError() throws Exception {
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post(ApiPaths.USERS)
                         .contentType(MediaType.APPLICATION_XML)
                         .content("<user/>"))
                 .andExpect(status().isUnsupportedMediaType())
@@ -122,7 +123,7 @@ class UserControllerTest {
     void getUserById() throws Exception {
         given(userService.getUser(1L)).willReturn(sampleUser(1L, UserStatus.ACTIVE));
 
-        mockMvc.perform(get("/api/users/1"))
+        mockMvc.perform(get(ApiPaths.withId(ApiPaths.USER_BY_ID, 1)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Alice Anderson"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
@@ -133,7 +134,7 @@ class UserControllerTest {
     void getUserReturnsNotFound() throws Exception {
         given(userService.getUser(99L)).willThrow(new UserNotFoundException(99L));
 
-        mockMvc.perform(get("/api/users/99"))
+        mockMvc.perform(get(ApiPaths.withId(ApiPaths.USER_BY_ID, 99)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("User 99 not found"));
@@ -148,9 +149,9 @@ class UserControllerTest {
                 {"name":"Alice Anderson","email":"alice@example.com","age":30}
                 """;
 
-        mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.USERS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "/api/users/21"))
+                .andExpect(header().string("Location", ApiPaths.withId(ApiPaths.USER_BY_ID, 21)))
                 .andExpect(jsonPath("$.id").value(21));
     }
 
@@ -161,7 +162,7 @@ class UserControllerTest {
                 {"name":"A","email":"not-an-email","age":0}
                 """;
 
-        mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.USERS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
@@ -173,7 +174,7 @@ class UserControllerTest {
     @Test
     @DisplayName("POST /api/users returns 400 when the body is missing")
     void createUserRejectsMissingBody() throws Exception {
-        mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(post(ApiPaths.USERS).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST_BODY"));
     }
@@ -187,7 +188,7 @@ class UserControllerTest {
                 {"name":"Alice Anderson","email":"alice@example.com","age":30}
                 """;
 
-        mockMvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ApiPaths.USERS).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_EMAIL"));
     }
@@ -201,7 +202,7 @@ class UserControllerTest {
                 {"name":"Alice Anderson","email":"alice@example.com","age":31}
                 """;
 
-        mockMvc.perform(put("/api/users/1").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(put(ApiPaths.withId(ApiPaths.USER_BY_ID, 1)).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
     }
@@ -211,7 +212,7 @@ class UserControllerTest {
     void updateUserStatus() throws Exception {
         given(userService.updateUserStatus(eq(1L), any())).willReturn(sampleUser(1L, UserStatus.DISABLED));
 
-        mockMvc.perform(patch("/api/users/1/status")
+        mockMvc.perform(patch(ApiPaths.withId(ApiPaths.USER_STATUS, 1))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"DISABLED\"}"))
                 .andExpect(status().isOk())
@@ -221,7 +222,7 @@ class UserControllerTest {
     @Test
     @DisplayName("PATCH /api/users/{id}/status returns 400 for a bad enum value")
     void updateUserStatusRejectsUnknownEnum() throws Exception {
-        mockMvc.perform(patch("/api/users/1/status")
+        mockMvc.perform(patch(ApiPaths.withId(ApiPaths.USER_STATUS, 1))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"SLEEPING\"}"))
                 .andExpect(status().isBadRequest())
@@ -231,7 +232,7 @@ class UserControllerTest {
     @Test
     @DisplayName("DELETE /api/users/{id} returns 204 without a body")
     void deleteUserReturnsNoContent() throws Exception {
-        mockMvc.perform(delete("/api/users/1"))
+        mockMvc.perform(delete(ApiPaths.withId(ApiPaths.USER_BY_ID, 1)))
                 .andExpect(status().isNoContent());
 
         verify(userService).deleteUser(1L);
@@ -243,7 +244,7 @@ class UserControllerTest {
         willThrow(new com.example.middemo.exception.UserHasOrdersException(1L))
                 .given(userService).deleteUser(1L);
 
-        mockMvc.perform(delete("/api/users/1"))
+        mockMvc.perform(delete(ApiPaths.withId(ApiPaths.USER_BY_ID, 1)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("USER_HAS_ORDERS"));
     }
