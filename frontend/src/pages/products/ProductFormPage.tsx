@@ -27,8 +27,8 @@ function validate(form: FormState): Record<string, string> {
   if (form.sku.trim().length === 0) {
     errors.sku = 'SKU must not be blank'
   }
-  if (!Number.isFinite(price) || price <= 0) {
-    errors.price = 'Price must be greater than 0'
+  if (!Number.isFinite(price) || price < 0.01) {
+    errors.price = 'Price must be greater than or equal to 0.01'
   }
   if (!Number.isInteger(stock) || stock < 0) {
     errors.stock = 'Stock must be greater than or equal to 0'
