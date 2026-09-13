@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: middemo
+
+  datasource:
+    url: ${MIDDEMO_DB_URL:jdbc:postgresql://localhost:5432/middemo}
+    username: ${MIDDEMO_DB_USERNAME:middemo}
+    password: ${MIDDEMO_DB_PASSWORD:middemo}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50
+        format_sql: true
+
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${MIDDEMO_PORT:8080}
+
+middemo:
+  seed:
+    # Inserts the deterministic demo data set on startup when the database is empty.
+    enabled: true
+
+logging:
+  level:
+    org.hibernate.SQL: info

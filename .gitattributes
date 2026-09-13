@@ -1,0 +1,24 @@
+# 统一换行符，避免因为 CRLF/LF 差异产生「整个文件都被改了」的假 diff。
+# 这一条对「改前 vs 改后」的对比很重要：diff 里出现的每一行都应该是真实改动。
+* text=auto
+
+# 明确指定几类文件，避免跨平台协作时出现噪音
+*.java text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.css  text eol=lf
+*.json text eol=lf
+*.xml  text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+
+# 脚本按各自平台的惯例
+*.sh   text eol=lf
+mvnw   text eol=lf
+*.ps1  text eol=crlf
+*.cmd  text eol=crlf
+
+# 二进制文件不做任何转换
+*.png binary
+*.jpg binary
+*.jar binary

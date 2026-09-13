@@ -1,0 +1,27 @@
+# ---- Java / Maven ----
+backend/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---- Node / Vite ----
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+*.tsbuildinfo
+
+# ---- Local database files (H2 fallback profile) ----
+backend/data/
+*.mv.db
+*.trace.db
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ---- Local overrides ----
+.env
+.env.local

@@ -1,0 +1,27 @@
+# Optional helper: starts a PostgreSQL instance that matches application.yml.
+#
+#   docker compose up -d
+#   cd backend && ./mvnw spring-boot:run
+#
+# The project does not need Docker to run: the backend also ships an "h2" profile that works
+# without any external database.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: middemo-postgres
+    environment:
+      POSTGRES_DB: middemo
+      POSTGRES_USER: middemo
+      POSTGRES_PASSWORD: middemo
+    ports:
+      - "5432:5432"
+    volumes:
+      - middemo-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U middemo -d middemo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  middemo-postgres-data:
