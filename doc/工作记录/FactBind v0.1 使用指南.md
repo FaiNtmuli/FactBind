@@ -42,8 +42,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1
 
 1. 拷入后端实现：`backend/src/main/java/com/example/middemo/factbind/`（9 个类）
 2. 拷入前端实现：`frontend/src/factbind/index.ts`
-3. 契约文件不存在时，拷入一份 `contracts/api.json` 模板
-4. 改三处配置：`application.yml` / `vite.config.ts` / `tsconfig.app.json`（已经有就跳过）
+3. 契约文件不存在时，拷入一份 `contracts/api.yaml` 模板
+4. 改两处配置：`application.yml` / `vite.config.ts`（已经有就跳过）
 
 你已有的文件不会被覆盖（契约除外——契约只在不存在时拷入；实现类重复安装时会覆盖为脚本来源的版本并在输出里说明）。
 
@@ -77,7 +77,7 @@ npm run dev
 **怎么确认 FactBind 生效了**：后端启动日志里应该有一行
 
 ```text
-FactBind loaded 20 operation(s) from URL [file:../contracts/api.json]
+FactBind loaded 20 operation(s) from URL [file:../contracts/api.yaml]
 ```
 
 没有这一行说明契约没被读到，检查 `application.yml` 里的 `factbind.contract`。
@@ -90,26 +90,24 @@ FactBind loaded 20 operation(s) from URL [file:../contracts/api.json]
 
 ### 3.1 写契约
 
-在 `contracts/api.json` 里，每一条接口写成一段：
+在 `contracts/api.yaml` 里，每一条接口写成一段：
 
-```json
-"/api/users/{id}": {
-  "get": {
-    "operationId": "User.Get",
-    "parameters": [
-      { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-    ]
-  }
-}
+```yaml
+/api/users/{id}:
+  get:
+    operationId: User.Get
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
 ```
 
 错误码 → 状态码写在 `x-factbind-errors`：
 
-```json
-"x-factbind-errors": {
-  "USER_NOT_FOUND": { "status": 404 }
-}
+```yaml
+x-factbind-errors:
+  USER_NOT_FOUND: { status: 404 }
 ```
+
+契约是**人手写**的文件，所以用 YAML 而不是 JSON：可以直接写 `#` 注释（比如在每组接口前面写一行"这里是用户相关"）。
 
 ### 3.2 控制器换注解
 
@@ -180,12 +178,12 @@ export function getUser(id: number): Promise<User> {
 
 | 你要的 | 契约里怎么写 |
 |---|---|
-| path 参数 | `{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }` |
-| 可选查询参数 | `{ "name": "keyword", "in": "query", "required": false, "schema": { "type": "string" } }` |
-| 带默认值的查询参数 | 同上，`schema` 里加 `"default": 20` |
+| path 参数 | `{ name: id, in: path, required: true, schema: { type: integer } }` |
+| 可选查询参数 | `{ name: keyword, in: query, required: false, schema: { type: string } }` |
+| 带默认值的查询参数 | 同上，`schema` 里加 `default: 20` |
 | 没有参数的接口 | 不写 `parameters` |
 | 请求体 | **不用写**，仍由 `@RequestBody` + DTO 负责 |
-| 新增一个错误码 | 在 `x-factbind-errors` 里加 `"CODE": { "status": 4xx }` |
+| 新增一个错误码 | 在 `x-factbind-errors` 里加 `CODE: { status: 4xx }` |
 
 ---
 
@@ -242,7 +240,8 @@ curl -i -X PATCH "http://localhost:8080/api/users"
 这是故意的——如果测试也去读契约，契约被改时测试会跟着一起变，等于没测。
 
 **契约文件能换位置吗？**
-能，但要同时改两处：后端 `application.yml` 的 `factbind.contract`，前端 `frontend/src/factbind/index.ts` 顶部那行相对 import。
+能，但要同时改两处：后端 `application.yml` 的 `factbind.contract`，前端 `frontend/src/factbind/index.ts` 顶部那行相对 import
+（`import contractRaw from '../../../contracts/api.yaml?raw'`）。契约必须保持 YAML 格式。
 
 **前后端会不会因为共享契约而耦合过紧？**
 契约里放的是双方都必须知道的传输事实。业务规则、校验规则、DTO 结构都不在里面，所以"改业务"不会牵动契约。

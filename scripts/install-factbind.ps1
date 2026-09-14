@@ -6,8 +6,8 @@
   它只做"装工具 + 改配置"，**不碰你的业务代码**：
     1. 拷入后端实现：backend/src/main/java/com/example/middemo/factbind/ 共 9 个类
     2. 拷入前端实现：frontend/src/factbind/index.ts
-    3. 契约文件不存在时，拷入一份 contracts/api.json
-    4. 改三处配置：application.yml、vite.config.ts、tsconfig.app.json
+    3. 契约文件不存在时，拷入一份 contracts/api.yaml
+  4. 改两处配置：application.yml、vite.config.ts
 
   装完应用照常能跑（老的 @GetMapping 控制器继续工作）。接下来"人的活"是：
     · 把契约内容写对
@@ -44,7 +44,7 @@ $backendClasses = @(
 
 $backendDir = 'backend/src/main/java/com/example/middemo/factbind'
 $frontendFile = 'frontend/src/factbind/index.ts'
-$contractFile = 'contracts/api.json'
+$contractFile = 'contracts/api.yaml'
 
 if (-not (Test-Path (Join-Path $root 'backend/pom.xml')) -or -not (Test-Path (Join-Path $root 'frontend/package.json'))) {
     throw "目标目录看起来不是本项目（缺少 backend/pom.xml 或 frontend/package.json）：$root"
@@ -88,14 +88,14 @@ if (Test-Path (Join-Path $root $contractFile)) {
     $changes.Add("契约：$contractFile（从 $Source 拷入）")
 }
 
-# ── 4. 三处配置 ───────────────────────────────────────────────────────────────
+# ── 4. 两处配置 ───────────────────────────────────────────────────────────────
 $yamlPath = Join-Path $root 'backend/src/main/resources/application.yml'
 if (Test-Path $yamlPath) {
     $yaml = [System.IO.File]::ReadAllText($yamlPath)
     if ($yaml -match '(?m)^factbind:') {
         $changes.Add("配置：application.yml 已有 factbind 段，跳过")
     } else {
-        $addition = "`n# FactBind：契约文件的位置（默认是 classpath:contracts/api.json）`nfactbind:`n  contract: file:../contracts/api.json`n"
+        $addition = "`n# FactBind：契约文件的位置（默认是 classpath:contracts/api.yaml）`nfactbind:`n  contract: file:../contracts/api.yaml`n"
         if (-not $DryRun) { [System.IO.File]::WriteAllText($yamlPath, $yaml + $addition, $encoding) }
         $changes.Add("配置：application.yml 追加 factbind.contract")
     }
@@ -114,19 +114,6 @@ if (Test-Path $vitePath) {
     }
 }
 
-$tsconfigPath = Join-Path $root 'frontend/tsconfig.app.json'
-if (Test-Path $tsconfigPath) {
-    $tsconfig = [System.IO.File]::ReadAllText($tsconfigPath)
-    if ($tsconfig -match 'resolveJsonModule') {
-        $changes.Add("配置：tsconfig.app.json 已有 resolveJsonModule，跳过")
-    } else {
-        $patched = $tsconfig -replace '("moduleResolution":\s*"bundler",)', "`$1`n    `"resolveJsonModule`": true,"
-        if ($patched -eq $tsconfig) { throw 'tsconfig.app.json 里找不到 "moduleResolution": "bundler", 请手动加 resolveJsonModule' }
-        if (-not $DryRun) { [System.IO.File]::WriteAllText($tsconfigPath, $patched, $encoding) }
-        $changes.Add("配置：tsconfig.app.json 加 resolveJsonModule")
-    }
-}
-
 # ── 汇总 ─────────────────────────────────────────────────────────────────────
 $prefix = if ($DryRun) { '[dry-run] ' } else { '' }
 Write-Output "${prefix}FactBind 安装完成："
@@ -134,7 +121,7 @@ $changes | ForEach-Object { Write-Output "  - $_" }
 Write-Output @"
 
 接下来是"人的活"（脚本不碰业务代码）：
-  1. 把 contracts/api.json 写对：每条 operation 一个 operationId，参数写清 name / in / required
+  1. 把 contracts/api.yaml 写对：每条 operation 一个 operationId，参数写清 name / in / required
   2. 后端控制器：@GetMapping("/{id}") → @FactBind("User.Get")，@PathVariable("id") → @FactBindParam
   3. 前端 api 层：request(``/api/users/`${id}``) → request('User.Get', { params: { id } })
   （异常类里的状态码可以先留着不动，想集中到契约时再去掉）
