@@ -59,19 +59,26 @@ function Read-Source([string]$relativePath) {
 }
 
 function Write-File([string]$relativePath, $content) {
+    if ($DryRun) { return }
     $path = Join-Path $root $relativePath
     New-Item -ItemType Directory -Force -Path (Split-Path $path) | Out-Null
     [System.IO.File]::WriteAllLines($path, $content, $encoding)
 }
 
 # ── 1/2. 拷贝两边的实现 ────────────────────────────────────────────────────────
+$existing = 0
 foreach ($class in $backendClasses) {
-    Write-File "$backendDir/$class" (Read-Source "$backendDir/$class")
+    $relative = "$backendDir/$class"
+    if (Test-Path (Join-Path $root $relative)) { $existing++ }
+    Write-File $relative (Read-Source $relative)
 }
-$changes.Add("后端实现：$backendDir/ （9 个类）")
+$note = if ($existing -gt 0) { "（$existing 个已存在，已覆盖为 $Source 版本）" } else { "" }
+$changes.Add("后端实现：$backendDir/ 9 个类$note")
 
+$frontendExists = Test-Path (Join-Path $root $frontendFile)
 Write-File $frontendFile (Read-Source $frontendFile)
-$changes.Add("前端实现：$frontendFile")
+$note = if ($frontendExists) { "（已存在，覆盖为 $Source 版本）" } else { "" }
+$changes.Add("前端实现：$frontendFile$note")
 
 # ── 3. 契约 ───────────────────────────────────────────────────────────────────
 if (Test-Path (Join-Path $root $contractFile)) {
