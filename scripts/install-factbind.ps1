@@ -140,6 +140,6 @@ Write-Output @"
   （异常类里的状态码可以先留着不动，想集中到契约时再去掉）
 
 然后照常跑：
-  cd backend  && ./mvnw spring-boot:run -Dspring-boot.run.profiles=h2
+  cd backend  && ./mvnw spring-boot:run "-Dspring-boot.run.profiles=h2"
   cd frontend && npm install && npm run dev
 "@

@@ -131,6 +131,13 @@ cd backend
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=h2     # Windows: mvnw.cmd ...
 ```
 
+> **Windows / PowerShell 注意**：`-D` 参数必须加引号，否则 Maven 会把它拆开并报
+> `Unknown lifecycle phase ".run.profiles=h2"`：
+>
+> ```powershell
+> ./mvnw spring-boot:run "-Dspring-boot.run.profiles=h2"
+> ```
+
 数据保存在 `backend/data/`，第一次启动会自动建表并写入演示数据。
 这个 profile 只是为了让新环境“零配置也能跑起来”，长期基线仍然以 PostgreSQL 为准。
 
@@ -163,6 +170,10 @@ cd backend
 ./mvnw -DskipTests package
 java -jar target/middemo-backend-0.0.1-SNAPSHOT.jar
 ```
+
+> **Windows / PowerShell 注意**：上面这些 `-D` 参数都要加引号，例如
+> `./mvnw spring-boot:run "-Dspring-boot.run.profiles=h2"`。
+> 不加引号时 PowerShell 会把参数拆开，Maven 报 `Unknown lifecycle phase ".run.profiles=h2"`（实测过）。
 
 后端监听 `http://localhost:8080`。启动后可以直接验证：
 
