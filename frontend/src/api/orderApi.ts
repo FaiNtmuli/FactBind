@@ -1,4 +1,4 @@
-import { buildQuery, request } from './http'
+import { request as factBindRequest } from '../factbind'
 import type { PageResponse } from '../types/common'
 import type {
   CreateOrderPayload,
@@ -8,24 +8,21 @@ import type {
 } from '../types/order'
 
 export function searchOrders(params: OrderSearchParams = {}): Promise<PageResponse<Order>> {
-  return request<PageResponse<Order>>(`/api/orders${buildQuery({ ...params })}`)
+  return factBindRequest<PageResponse<Order>>('Order.List', { params: { ...params } })
 }
 
 export function getOrder(id: number): Promise<Order> {
-  return request<Order>(`/api/orders/${id}`)
+  return factBindRequest<Order>('Order.Get', { params: { id } })
 }
 
 export function createOrder(payload: CreateOrderPayload): Promise<Order> {
-  return request<Order>('/api/orders', { method: 'POST', body: payload })
+  return factBindRequest<Order>('Order.Create', { body: payload })
 }
 
 export function updateOrderStatus(id: number, status: OrderStatus, notify = false): Promise<Order> {
-  return request<Order>(`/api/orders/${id}/status${buildQuery({ notify })}`, {
-    method: 'PATCH',
-    body: { status },
-  })
+  return factBindRequest<Order>('Order.UpdateStatus', { params: { id, notify }, body: { status } })
 }
 
 export function deleteOrder(id: number): Promise<void> {
-  return request<void>(`/api/orders/${id}`, { method: 'DELETE' })
+  return factBindRequest<void>('Order.Delete', { params: { id } })
 }

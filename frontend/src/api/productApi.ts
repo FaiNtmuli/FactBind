@@ -1,4 +1,4 @@
-import { buildQuery, request } from './http'
+import { request as factBindRequest } from '../factbind'
 import type { PageResponse } from '../types/common'
 import type {
   CreateProductPayload,
@@ -9,29 +9,29 @@ import type {
 } from '../types/product'
 
 export function searchProducts(params: ProductSearchParams = {}): Promise<PageResponse<Product>> {
-  return request<PageResponse<Product>>(`/api/products${buildQuery({ ...params })}`)
+  return factBindRequest<PageResponse<Product>>('Product.List', { params: { ...params } })
 }
 
 export function getProduct(id: number): Promise<Product> {
-  return request<Product>(`/api/products/${id}`)
+  return factBindRequest<Product>('Product.Get', { params: { id } })
 }
 
 export function createProduct(payload: CreateProductPayload): Promise<Product> {
-  return request<Product>('/api/products', { method: 'POST', body: payload })
+  return factBindRequest<Product>('Product.Create', { body: payload })
 }
 
 export function updateProduct(id: number, payload: UpdateProductPayload): Promise<Product> {
-  return request<Product>(`/api/products/${id}`, { method: 'PUT', body: payload })
+  return factBindRequest<Product>('Product.Update', { params: { id }, body: payload })
 }
 
 export function updateProductStock(id: number, stock: number): Promise<Product> {
-  return request<Product>(`/api/products/${id}/stock`, { method: 'PATCH', body: { stock } })
+  return factBindRequest<Product>('Product.UpdateStock', { params: { id }, body: { stock } })
 }
 
 export function updateProductStatus(id: number, status: ProductStatus): Promise<Product> {
-  return request<Product>(`/api/products/${id}/status`, { method: 'PATCH', body: { status } })
+  return factBindRequest<Product>('Product.UpdateStatus', { params: { id }, body: { status } })
 }
 
 export function deleteProduct(id: number): Promise<void> {
-  return request<void>(`/api/products/${id}`, { method: 'DELETE' })
+  return factBindRequest<void>('Product.Delete', { params: { id } })
 }

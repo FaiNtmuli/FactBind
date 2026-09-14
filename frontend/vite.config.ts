@@ -7,6 +7,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // 契约在仓库根（../contracts），Vite 默认只允许读项目目录内的文件
+    fs: {
+      allow: ['..'],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

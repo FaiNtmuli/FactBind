@@ -1,4 +1,4 @@
-import { buildQuery, request } from './http'
+import { request as factBindRequest } from '../factbind'
 import type { PageResponse } from '../types/common'
 import type {
   CreateUserPayload,
@@ -9,25 +9,25 @@ import type {
 } from '../types/user'
 
 export function searchUsers(params: UserSearchParams = {}): Promise<PageResponse<User>> {
-  return request<PageResponse<User>>(`/api/users${buildQuery({ ...params })}`)
+  return factBindRequest<PageResponse<User>>('User.List', { params: { ...params } })
 }
 
 export function getUser(id: number): Promise<User> {
-  return request<User>(`/api/users/${id}`)
+  return factBindRequest<User>('User.Get', { params: { id } })
 }
 
 export function createUser(payload: CreateUserPayload): Promise<User> {
-  return request<User>('/api/users', { method: 'POST', body: payload })
+  return factBindRequest<User>('User.Create', { body: payload })
 }
 
 export function updateUser(id: number, payload: UpdateUserPayload): Promise<User> {
-  return request<User>(`/api/users/${id}`, { method: 'PUT', body: payload })
+  return factBindRequest<User>('User.Update', { params: { id }, body: payload })
 }
 
 export function updateUserStatus(id: number, status: UserStatus): Promise<User> {
-  return request<User>(`/api/users/${id}/status`, { method: 'PATCH', body: { status } })
+  return factBindRequest<User>('User.UpdateStatus', { params: { id }, body: { status } })
 }
 
 export function deleteUser(id: number): Promise<void> {
-  return request<void>(`/api/users/${id}`, { method: 'DELETE' })
+  return factBindRequest<void>('User.Delete', { params: { id } })
 }
