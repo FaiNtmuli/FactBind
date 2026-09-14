@@ -63,7 +63,9 @@ function Write-File([string]$relativePath, $content) {
     if ($DryRun) { return }
     $path = Join-Path $root $relativePath
     New-Item -ItemType Directory -Force -Path (Split-Path $path) | Out-Null
-    [System.IO.File]::WriteAllLines($path, $content, $encoding)
+    # 用 LF 写：仓库的 .gitattributes 对 .java/.ts/.yaml 都要求 eol=lf，
+    # 而 WriteAllLines 在 Windows 上会写 CRLF，导致装完 git 一路提示换行符不一致。
+    [System.IO.File]::WriteAllText($path, ($content -join "`n") + "`n", $encoding)
 }
 
 # ── 1/2. 拷贝两边的实现 ────────────────────────────────────────────────────────
@@ -132,15 +134,22 @@ if (Test-Path $pkgPath) {
             $changes.Add("依赖：没找到 npm —— 请手动执行   cd frontend; npm install yaml")
         } else {
             Push-Location (Join-Path $root 'frontend')
+            # npm 会把 deprecation 之类的提示写到 stderr；在 PowerShell 5.1 下
+            # 只要 $ErrorActionPreference 是 Stop，这就会被当成致命错误中断脚本。
+            # 所以这一段临时降级为 Continue，只看退出码。
+            $previousPreference = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
             try {
-                & $npm.Source install yaml 2>&1 | Out-Null
-                if ($LASTEXITCODE -eq 0) {
-                    $changes.Add("依赖：frontend 装好 yaml（契约解析用）")
-                } else {
-                    $changes.Add("依赖：npm install yaml 失败 —— 请手动执行   cd frontend; npm install yaml")
-                }
+                & $npm.Source install yaml --no-audit --no-fund 2>&1 | Out-Null
+                $npmExit = $LASTEXITCODE
             } finally {
                 Pop-Location
+                $ErrorActionPreference = $previousPreference
+            }
+            if ($npmExit -eq 0) {
+                $changes.Add("依赖：frontend 装好 yaml（契约解析用）")
+            } else {
+                $changes.Add("依赖：npm install yaml 失败 —— 请手动执行   cd frontend; npm install yaml")
             }
         }
     }
