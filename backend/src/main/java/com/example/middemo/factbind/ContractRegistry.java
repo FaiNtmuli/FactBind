@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.yaml.snakeyaml.LoaderOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,7 +23,10 @@ import java.util.Set;
 /**
  * 契约的内存形态：启动时加载一次，失败即终止。
  *
- * <p>它只做"把 JSON 读成事实"，不认识 Spring、也不认识业务——所以生产代码和测试可以共用同一个类。
+ * <p>它只做"把契约（YAML）读成事实"，不认识 Spring、也不认识业务——所以生产代码和测试可以共用同一个类。
+ *
+ * <p>YAML 用 Spring Boot 本来就带在 classpath 上的 SnakeYAML 解析（它读 {@code application.yml} 用的就是它），
+ * 因此这里没有引入任何新依赖；解析出的 Map 再经 Jackson 转成 {@link JsonNode}，下面的遍历逻辑与格式无关。
  */
 public class ContractRegistry {
 
@@ -33,7 +39,7 @@ public class ContractRegistry {
     public ContractRegistry(
             ObjectMapper objectMapper,
             ResourceLoader resourceLoader,
-            @Value("${factbind.contract:classpath:contracts/api.json}") String location
+            String location
     ) {
         Resource resource = resourceLoader.getResource(location);
         JsonNode root = readTree(objectMapper, resource);
@@ -139,10 +145,18 @@ public class ContractRegistry {
     }
 
     private JsonNode readTree(ObjectMapper objectMapper, Resource resource) {
+        Object parsed;
         try (InputStream in = resource.getInputStream()) {
-            return objectMapper.readTree(in);
+            // SafeConstructor：YAML 里的自定义标签不会去实例化任意类。契约是本地文件，但没有理由留这个口子。
+            parsed = new Yaml(new SafeConstructor(new LoaderOptions())).load(in);
         } catch (IOException e) {
             throw FactBindException.contractLoad("cannot read " + resource + ": " + e.getMessage());
+        } catch (YAMLException e) {
+            throw FactBindException.contractLoad("cannot parse " + resource + ": " + e.getMessage());
         }
+        if (parsed == null) {
+            throw FactBindException.contractLoad("contract is empty: " + resource);
+        }
+        return objectMapper.valueToTree(parsed);
     }
 }

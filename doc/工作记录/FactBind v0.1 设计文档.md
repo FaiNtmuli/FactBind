@@ -34,7 +34,7 @@ v0.1 的目标不是覆盖所有接口能力，而是证明一件事：
 ## 二、总体形态
 
 ```text
-                contracts/api.json          ← 唯一的边界事实
+                contracts/api.yaml          ← 唯一的边界事实
                         │
         ┌───────────────┴───────────────┐
         │                               │
@@ -79,11 +79,11 @@ v0.1 的请求体因此仍然写作 `@RequestBody`，契约里完全不提 DTO �
 
 ## 四、文件清单
 
-新增的实现（共 10 个文件、607 行）：
+新增的实现（共 10 个文件、624 行）：
 
 | 文件 | 行 | 作用 |
 |---|---:|---|
-| `backend/src/main/java/com/example/middemo/factbind/ContractRegistry.java` | 148 | 启动时把契约 JSON 读成内存表：`符号 → 方法/路径/参数`，以及 `错误码 → 状态码` |
+| `backend/src/main/java/com/example/middemo/factbind/ContractRegistry.java` | 148 | 启动时用 SnakeYAML 把契约读成内存表：`符号 → 方法/路径/参数`，以及 `错误码 → 状态码` |
 | `.../factbind/FactBind.java` | 19 | 方法注解，写一个稳定符号，**替代** `@GetMapping("/users/{id}")` |
 | `.../factbind/FactBindParam.java` | 19 | 参数注解，**替代** `@PathVariable("id")` / `@RequestParam("size")` |
 | `.../factbind/FactBindHandlerMapping.java` | 68 | 建路由表时把 `@FactBind` 翻成 Spring 的 URL 条目；顺带校验参数是否对得上 |
@@ -92,9 +92,10 @@ v0.1 的请求体因此仍然写作 `@RequestBody`，契约里完全不提 DTO �
 | `.../factbind/ResolvedOperation.java` | 24 | 契约里"一条接口"的内存形态 |
 | `.../factbind/ResolvedParameter.java` | 9 | 契约里"一个参数"的内存形态 |
 | `.../factbind/FactBindException.java` | 42 | 所有失败的统一出口，一律 fail fast |
-| `frontend/src/factbind/index.ts` | 135 | 前端半边：读同一份契约，按符号拼 URL 并发请求 |
+| `frontend/src/factbind/index.ts` | 138 | 前端半边：读同一份契约，按符号拼 URL 并发请求 |
 
-另加一份契约 `contracts/api.json`（145 行，20 条 operation + 20 条错误码），以及 `scripts/install-factbind.ps1`（演示用安装脚本，不属于 FactBind 本体）。
+另加一份契约 `contracts/api.yaml`（151 行，其中 15 行注释、16 行空行，有效内容 120 行；
+含 20 条 operation + 20 条错误码），以及 `scripts/install-factbind.ps1`（演示用安装脚本，不属于 FactBind 本体）。
 
 ---
 
@@ -104,7 +105,7 @@ v0.1 的后端没有"自己实现一个 Web 框架"。它只在 Spring 原有的
 
 ### 5.1 启动期 —— `ContractRegistry`
 
-- **输入**：`factbind.contract` 配置指向的资源（默认 `classpath:contracts/api.json`），本项目里是 `file:../contracts/api.json`
+- **输入**：`factbind.contract` 配置指向的资源（默认 `classpath:contracts/api.yaml`），本项目里是 `file:../contracts/api.yaml`
 - **隐式输入**：Spring 的 `ObjectMapper`、`ResourceLoader`
 - **输出**：构建好的内存表，并打一行启动日志
 - **隐式输出**：契约读不到、`paths` 缺失、某条 operation 没有 `operationId`、`operationId` 重复、错误码缺 `status` —— 全部在这里抛异常，**应用直接起不来**
@@ -166,30 +167,33 @@ request('User.Get', { params: { id } })
 
 ## 七、契约格式
 
-沿用 OpenAPI 3.0 的形状，只用到其中很小一部分：
+格式是 **YAML**，形状沿用 OpenAPI 3.0，只用到其中很小一部分：
 
-```json
-{
-  "openapi": "3.0.3",
-  "info": { "title": "MidDemo API", "version": "1.0.0" },
+```yaml
+# 契约的开头就是一段说明——JSON 做不到这件事，所以旧版只能拿一个 "x-factbind-note" 键来凑
+openapi: 3.0.3
+info:
+  title: MidDemo API
+  version: 1.0.0
 
-  "x-factbind-errors": {
-    "USER_NOT_FOUND": { "status": 404 },
-    "DUPLICATE_EMAIL": { "status": 409 }
-  },
+# 错误码 → HTTP 状态码
+x-factbind-errors:
+  USER_NOT_FOUND:    { status: 404 }
+  DUPLICATE_EMAIL:   { status: 409 }
 
-  "paths": {
-    "/api/users/{id}": {
-      "get": {
-        "operationId": "User.Get",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ]
-      }
-    }
-  }
-}
+paths:
+  /api/users/{id}:
+    get:
+      operationId: User.Get
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
 ```
+
+两张表的写法（`x-factbind-errors` 和每条 `parameters`）用 YAML 的流式映射，一个条目一行，既省掉引号噪音，又保持可纵横扫读。
+
+选 YAML 而不是 JSON 的原因只有一条：**这是人手写的声明文件，注释比什么都重要**。
+
+用 OpenAPI 的形状（而不是自创格式）的目的：编辑器、校验器、未来的文档生成工具都能直接吃这份文件。
 
 命名规则：
 
@@ -198,32 +202,41 @@ request('User.Get', { params: { id } })
 - `parameters[].in` 目前只支持 `path` 和 `query`
 - `schema.default` 是参数默认值；不写 `default` 且 `required: false`，缺席时值为 `null`
 
-用 OpenAPI 的形状（而不是自创格式）的目的：编辑器、校验器、未来的文档生成工具都能直接吃这份文件。
+> YAML 的坑提前立规矩：`no` / `yes` / `on` / `off` 在 YAML 1.1 里是布尔值。
+> 契约里的字符串值（枚举、错误码）目前不会撞上这些词，将来写新值时注意，必要时加引号。
 
 ---
 
-## 八、配置项（三处）
+## 八、配置项（两处）
 
 | 文件 | 改动 | 为什么 |
 |---|---|---|
-| `backend/src/main/resources/application.yml` | `factbind.contract: file:../contracts/api.json` | 告诉后端契约在哪；默认值是 `classpath:contracts/api.json` |
+| `backend/src/main/resources/application.yml` | `factbind.contract: file:../contracts/api.yaml` | 告诉后端契约在哪；默认值是 `classpath:contracts/api.yaml` |
 | `frontend/vite.config.ts` | `server.fs.allow: ['..']` | 契约放在 `frontend/` 外面，Vite 默认只允许读项目目录内的文件 |
-| `frontend/tsconfig.app.json` | `"resolveJsonModule": true` | 允许前端 `import` 一份 JSON |
 
 契约文件本身放在**仓库根的 `contracts/`**，前后端各读同一份。
+
+> 契约从 JSON 换成 YAML 之后，`frontend/tsconfig.app.json` 的 `resolveJsonModule` 不再需要——
+> 前端改成 `import raw from '...api.yaml?raw'` 再解析，读进来的是**字符串**，不是 JSON 模块。
+> 所以这个文件现在与基线**完全一致**，从改动清单里消失了。
 
 ---
 
 ## 九、与基线的差异账
 
-`git diff main factbind-min` 共 35 个文件、**+910 / −193**，可分四类：
+`git diff main factbind-min` 共 36 个文件、**+951 / −195**，可分五类：
 
 | 类别 | 内容 | 文件数 | 增 / 删 |
 |---|---|---:|---|
-| 包内内容（工具实现） | 后端 9 类 472 行 + 前端 `index.ts` 135 行 | 10 | +607 / 0 |
-| 契约 | `contracts/api.json` | 1 | +145 / 0 |
+| 包内内容（工具实现） | 后端 9 类 486 行 + 前端 `index.ts` 138 行 | 10 | +624 / 0 |
+| 契约 | `contracts/api.yaml` | 1 | +151 / 0 |
 | 调用点修改与 import | 4 个控制器、13 个异常类、4 个前端 api 文件 | 21 | +148 / −193 |
-| 配置项修改 | `application.yml`、`vite.config.ts`、`tsconfig.app.json` | 3 | +10 / 0 |
+| 配置项修改 | `application.yml`、`vite.config.ts` | 2 | +9 / 0 |
+| 前端依赖 | `package.json` / `package-lock.json` 加 `yaml` | 2 | +19 / −2 |
+
+> 契约换成 YAML 让账目变化了三处：工具实现 +17 行（ContractRegistry 加 SnakeYAML 解析、前端加一行 import）；
+> 契约 +6 行（多出来的全是注释和空行，有效内容反而比 JSON 少 25 行）；
+> 配置少改一个文件（`tsconfig.app.json` 不再需要），但多出一个前端依赖。
 
 两点说明：
 
@@ -254,10 +267,18 @@ request('User.Get', { params: { id } })
    尚未改动，因为它会牵动测试文件的 import。
 
 2. **契约的位置写在两个地方。** 后端读 `application.yml` 的 `factbind.contract`，
-   前端读 `index.ts` 里写死的相对 import（`../../../contracts/api.json`）。
+   前端读 `index.ts` 里写死的相对 import（`../../../contracts/api.yaml?raw`）。
    换契约文件位置时要同时改这两处。
 
 3. **`main` 的 `README.md` 写的是"本项目不包含任何 FactBind 代码"**，
    这句话在 `factbind-min` 上已经过期。
 
 4. **参数位置只支持 `path` 和 `query`。** 遇到别的位置会启动期报错，而不是静默忽略。
+
+5. **前端为 YAML 多付了约 31 kB gzip。** 契约用 `?raw` 读进来后由 `yaml` 包在浏览器里解析，
+   实测产物体积从 350 kB / 107 kB(gzip) 变成 444 kB / 138 kB(gzip)，增量基本就是 YAML 解析器本身。
+   想省掉它，可以在构建期解析（`vite.config.ts` 里加一个小插件，把契约当虚拟模块注入），
+   代价是构建配置多一段代码——当前选了"零配置、多 31 kB"这一边。
+
+6. **契约是构建期快照，后端是运行期加载。** 前端产物里的契约是打包那一刻的内容，
+   后端每次启动都重新读。两者版本不一致时没有任何提示（这是第九节之外的另一处已知缺口）。

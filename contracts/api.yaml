@@ -1,0 +1,151 @@
+# FactBind 契约（FactBind Contract）
+#
+# 接口的 method / path / 参数，以及业务错误码到 HTTP 状态码的映射，只写在这一个文件里。
+# 后端启动时读它（位置见 application.yml 的 factbind.contract），前端加载时读同一份。
+# 形状沿用 OpenAPI 3.0，只用到其中很小一部分。
+
+openapi: 3.0.3
+info:
+  title: MidDemo API
+  version: 1.0.0
+
+# ── 错误码 → HTTP 状态码 ──────────────────────────────────────────────
+# 异常类里不再写状态码，运行期从这个表查。契约里没有的码会立刻抛错，而不是猜一个状态码返回。
+x-factbind-errors:
+  # 框架级：校验、路由、报文解析
+  VALIDATION_ERROR:           { status: 400 }
+  INVALID_PARAMETER:          { status: 400 }
+  MISSING_PARAMETER:          { status: 400 }
+  MALFORMED_REQUEST_BODY:     { status: 400 }
+  RESOURCE_NOT_FOUND:         { status: 404 }
+  METHOD_NOT_ALLOWED:         { status: 405 }
+  UNSUPPORTED_MEDIA_TYPE:     { status: 415 }
+  DATA_INTEGRITY_VIOLATION:   { status: 409 }
+  INTERNAL_ERROR:             { status: 500 }
+
+  # 业务错误码：与 exception/ 下的异常类一一对应
+  USER_NOT_FOUND:             { status: 404 }
+  DUPLICATE_EMAIL:            { status: 409 }
+  USER_HAS_ORDERS:            { status: 409 }
+  USER_NOT_ACTIVE:            { status: 409 }
+  PRODUCT_NOT_FOUND:          { status: 404 }
+  DUPLICATE_SKU:              { status: 409 }
+  PRODUCT_IN_USE:             { status: 409 }
+  PRODUCT_NOT_ON_SALE:        { status: 409 }
+  INSUFFICIENT_STOCK:         { status: 409 }
+  ORDER_NOT_FOUND:            { status: 404 }
+  INVALID_ORDER_STATUS:       { status: 409 }
+
+# ── 接口 ─────────────────────────────────────────────────────────────
+# operationId 是前后端唯一需要共同记住的稳定符号：路径、参数位置、HTTP 方法变了，它都不变。
+paths:
+
+  # ── 用户 ──
+  /api/users:
+    get:
+      operationId: User.List
+      parameters:
+        - { name: keyword, in: query, required: false, schema: { type: string } }
+        - { name: status,  in: query, required: false, schema: { type: string, enum: [ACTIVE, DISABLED] } }
+        - { name: page,    in: query, required: false, schema: { type: integer, default: 0 } }
+        - { name: size,    in: query, required: false, schema: { type: integer, default: 20 } }
+    post:
+      operationId: User.Create
+
+  /api/users/{id}:
+    get:
+      operationId: User.Get
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+    put:
+      operationId: User.Update
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+    delete:
+      operationId: User.Delete
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+
+  /api/users/{id}/status:
+    patch:
+      operationId: User.UpdateStatus
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+
+  # ── 商品 ──
+  /api/products:
+    get:
+      operationId: Product.List
+      parameters:
+        - { name: keyword, in: query, required: false, schema: { type: string } }
+        - { name: status,  in: query, required: false, schema: { type: string, enum: [ON_SALE, OFF_SALE] } }
+        - { name: page,    in: query, required: false, schema: { type: integer, default: 0 } }
+        - { name: size,    in: query, required: false, schema: { type: integer, default: 20 } }
+    post:
+      operationId: Product.Create
+
+  /api/products/{id}:
+    get:
+      operationId: Product.Get
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+    put:
+      operationId: Product.Update
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+    delete:
+      operationId: Product.Delete
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+
+  /api/products/{id}/stock:
+    patch:
+      operationId: Product.UpdateStock
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+
+  /api/products/{id}/status:
+    patch:
+      operationId: Product.UpdateStatus
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+
+  # ── 订单 ──
+  /api/orders:
+    get:
+      operationId: Order.List
+      parameters:
+        - { name: userId, in: query, required: false, schema: { type: integer } }
+        - { name: status, in: query, required: false, schema: { type: string, enum: [CREATED, PAID, CANCELLED, COMPLETED] } }
+        - { name: page,   in: query, required: false, schema: { type: integer, default: 0 } }
+        - { name: size,   in: query, required: false, schema: { type: integer, default: 20 } }
+    post:
+      operationId: Order.Create
+
+  /api/orders/{id}:
+    get:
+      operationId: Order.Get
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+    delete:
+      operationId: Order.Delete
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+
+  /api/orders/{id}/status:
+    patch:
+      operationId: Order.UpdateStatus
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: notify, in: query, required: false, schema: { type: boolean, default: false } }
+
+  # ── 看板 ──
+  /api/dashboard/summary:
+    get:
+      operationId: Dashboard.Summary
+
+  /api/dashboard/recent-orders:
+    get:
+      operationId: Dashboard.RecentOrders
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 5 } }

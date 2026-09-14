@@ -1,8 +1,11 @@
-import contract from '../../../contracts/api.json'
+import contractRaw from '../../../contracts/api.yaml?raw'
+import { parse as parseYaml } from 'yaml'
 import { buildQuery, request as httpRequest } from '../api/http'
 
 /**
- * FactBind 的前端半边：读同一份契约（仓库根的 contracts/api.json），按契约拼 URL、发请求。
+ * FactBind 的前端半边：读同一份契约（仓库根的 contracts/api.yaml），按契约拼 URL、发请求。
+ *
+ * 契约是 YAML 文本，用 `?raw` 原样读进来再解析——这样不需要任何 Vite 插件或构建期改造。
  *
  * 调用方只说"这条 operation 叫什么、有哪些参数值"；HTTP 方法、路径、以及每个参数该放 path 还是
  * query，全部由契约决定。契约是**运行期加载的数据**，没有代码生成。
@@ -38,9 +41,9 @@ const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const
 
 /** 启动时把契约读成"符号 → 方法 / 路径 / 参数"的表。 */
 const registry = new Map<string, ResolvedOperation>()
-const document = contract as unknown as { paths?: Record<string, Record<string, ContractOperation>> }
+const document = parseYaml(contractRaw) as { paths?: Record<string, Record<string, ContractOperation>> }
 
-if (!document.paths) {
+if (!document?.paths) {
   throw new Error('FactBind contract error: missing "paths"')
 }
 

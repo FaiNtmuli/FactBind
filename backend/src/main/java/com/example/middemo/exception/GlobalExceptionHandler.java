@@ -26,7 +26,7 @@ import java.util.Map;
  * Turns exceptions into the single error body format used by the whole API.
  *
  * <p><b>这里不再出现任何 HTTP 状态码字面量</b>：错误码 → 状态码的映射只写在契约
- * （{@code contracts/api.json} 的 {@code x-factbind-errors}）里，运行期从这个表查出来。
+ * （{@code contracts/api.yaml} 的 {@code x-factbind-errors}）里，运行期从这个表查出来。
  * 所以"把 409 改成 422"只需要改契约一处。
  *
  * <p>同时强制"错误面"：某条接口抛了它没声明的业务错误码，立刻失败 ——

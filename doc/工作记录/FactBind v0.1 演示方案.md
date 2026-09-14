@@ -74,7 +74,7 @@ npm ci                  # 装前端依赖
 - **终端 B**：前端（`cd frontend`）+ 后面要用的 `curl`
 - **浏览器**：<http://localhost:5173>
 - **编辑器**：提前把这三个文件打开，别现场找
-  - `contracts/api.json`（跑完安装脚本后才有）
+  - `contracts/api.yaml`（跑完安装脚本后才有）
   - `backend/src/main/java/com/example/middemo/controller/UserController.java`
   - `frontend/src/api/userApi.ts`
 - 确认 8080 和 5173 没被占用。后端端口被占会直接启动失败；Vite 端口被占会自己换到 5174（按提示改浏览器地址即可）
@@ -168,15 +168,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1
 FactBind 安装完成：
   - 后端实现：backend/src/main/java/com/example/middemo/factbind/ 9 个类
   - 前端实现：frontend/src/factbind/index.ts
-  - 契约：contracts/api.json（从 factbind-min 拷入）
+  - 契约：contracts/api.yaml（从 factbind-min 拷入）
   - 配置：application.yml 追加 factbind.contract
   - 配置：vite.config.ts 加 fs.allow
-  - 配置：tsconfig.app.json 加 resolveJsonModule
 ```
 
 **说什么**：
 
-> 装工具一共动了 10 个新文件加 3 处配置，**没碰任何业务代码**。
+> 装工具一共动了 10 个新文件加 2 处配置，**没碰任何业务代码**。
 > 现在控制器还是老写法，应用照常跑——FactBind 挂在那儿待命，你用多少它管多少。
 
 ### 幕 4（4:30）装完测试照旧全绿
@@ -206,18 +205,15 @@ BUILD SUCCESS
 
 以 `User.Get` 这条为例，编辑器里演示三处：
 
-1. 契约里已经有这一条（`contracts/api.json`）：
+1. 契约里已经有这一条（`contracts/api.yaml`）：
 
-   ```json
-   "/api/users/{id}": {
-     "get": {
-       "operationId": "User.Get",
-       "parameters": [
-         { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
-       ]
-     }
-   }
-   ```
+    ```yaml
+    /api/users/{id}:
+      get:
+        operationId: User.Get
+        parameters:
+          - { name: id, in: path, required: true, schema: { type: integer } }
+    ```
 
 2. 控制器，改前 → 改后：
 
@@ -250,7 +246,7 @@ git checkout factbind-min -- `
   backend/src/main/java/com/example/middemo/controller `
   backend/src/main/java/com/example/middemo/exception `
   frontend/src/api `
-  contracts/api.json
+  contracts/api.yaml
 
 cd backend
 ./mvnw test
@@ -264,10 +260,10 @@ cd backend
 
 ### 幕 6（9:00）★ 只改契约一处，行为跟着变
 
-打开 `contracts/api.json`，把 `USER_NOT_FOUND` 的状态码改成 422，就**这一行**：
+打开 `contracts/api.yaml`，把 `USER_NOT_FOUND` 的状态码改成 422，就**这一行**：
 
-```json
-"USER_NOT_FOUND": { "status": 422 },
+```yaml
+USER_NOT_FOUND: { status: 422 }
 ```
 
 重启后端（`Ctrl+C` 后重新 `./mvnw spring-boot:run "-Dspring-boot.run.profiles=h2"`），然后：
@@ -301,7 +297,7 @@ HTTP/1.1 422
 
 ### 幕 7（11:00）★ 契约被偷改，测试会红
 
-在 `contracts/api.json` 里把 `/api/users/{id}` 改成 `/api/people/{id}`，然后：
+在 `contracts/api.yaml` 里把 `/api/users/{id}` 改成 `/api/people/{id}`，然后：
 
 ```powershell
 ./mvnw test
@@ -325,7 +321,7 @@ Tests run: 84, Failures: 6, Errors: 0, Skipped: 0
 > 这就是"事实集中"真正买到的东西：**契约不是文档，是被执行的**。
 > 如果测试也去读契约，契约一改测试跟着一起变，那就永远发现不了漂移。
 
-演示完还原：`git checkout -- contracts/api.json`
+演示完还原：`git checkout -- contracts/api.yaml`
 
 ### 幕 8（12:30）写错符号，应用起不来
 
@@ -377,7 +373,7 @@ git diff --shortstat main factbind-min
 
 | 环节 | 操作 | 实测结果 |
 |---|---|---|
-| 启动 | `./mvnw spring-boot:run "-Dspring-boot.run.profiles=h2"` | `FactBind loaded 20 operation(s) from URL [file:../contracts/api.json]`；`Started MidDemoApplication in 2.965 seconds` |
+| 启动 | `./mvnw spring-boot:run "-Dspring-boot.run.profiles=h2"` | `FactBind loaded 20 operation(s) from URL [file:../contracts/api.yaml]`；`Started MidDemoApplication in 2.965 seconds` |
 | 读列表 | `curl "http://localhost:8080/api/users?size=1"` | 200，返回一条用户 JSON |
 | 资源不存在 | `curl -i http://localhost:8080/api/users/999999` | 404 + `{"code":"USER_NOT_FOUND","message":"User 999999 not found"}` |
 | 方法不支持 | `curl -i -X PATCH http://localhost:8080/api/users` | 405 + `{"code":"METHOD_NOT_ALLOWED","message":"HTTP method PATCH is not supported by this endpoint"}` |

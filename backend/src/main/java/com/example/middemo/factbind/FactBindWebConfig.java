@@ -32,7 +32,7 @@ public class FactBindWebConfig implements WebMvcRegistrations, WebMvcConfigurer 
     public ContractRegistry contractRegistry(
             ObjectMapper objectMapper,
             ResourceLoader resourceLoader,
-            @Value("${factbind.contract:classpath:contracts/api.json}") String location
+            @Value("${factbind.contract:classpath:contracts/api.yaml}") String location
     ) {
         return new ContractRegistry(objectMapper, resourceLoader, location);
     }

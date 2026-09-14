@@ -32,7 +32,7 @@ logging:
   level:
     org.hibernate.SQL: info
 
-# FactBind：契约文件的位置（默认是 classpath:contracts/api.json）。
+# FactBind：契约文件的位置（默认是 classpath:contracts/api.yaml）。
 # 这里指向仓库根的 contracts/，让前后端读同一份契约。
 factbind:
-  contract: file:../contracts/api.json
+  contract: file:../contracts/api.yaml
