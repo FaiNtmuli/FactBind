@@ -171,11 +171,12 @@ FactBind 安装完成：
   - 契约：contracts/api.yaml（从 factbind-min 拷入）
   - 配置：application.yml 追加 factbind.contract
   - 配置：vite.config.ts 加 fs.allow
+  - 依赖：frontend 装好 yaml（契约解析用）
 ```
 
 **说什么**：
 
-> 装工具一共动了 10 个新文件加 2 处配置，**没碰任何业务代码**。
+> 装工具一共动了 10 个新文件、2 处配置和 1 个前端依赖，**没碰任何业务代码**。
 > 现在控制器还是老写法，应用照常跑——FactBind 挂在那儿待命，你用多少它管多少。
 
 ### 幕 4（4:30）装完测试照旧全绿

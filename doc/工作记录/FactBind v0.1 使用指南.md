@@ -34,7 +34,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1 -Target .
 ```
 
-它会做四件事：
+它会做五件事：
 
 > 命令里的 `powershell` 就是 Windows 自带的 Windows PowerShell 5.1，不需要额外安装。
 > 本机如果装了 PowerShell 7，把 `powershell` 换成 `pwsh` 也可以（脚本对两者都测过）。
@@ -44,8 +44,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1
 2. 拷入前端实现：`frontend/src/factbind/index.ts`
 3. 契约文件不存在时，拷入一份 `contracts/api.yaml` 模板
 4. 改两处配置：`application.yml` / `vite.config.ts`（已经有就跳过）
+5. 在 `frontend/` 里装一个依赖 `yaml`（契约是 YAML，前端要解析它；已有就跳过）
 
 你已有的文件不会被覆盖（契约除外——契约只在不存在时拷入；实现类重复安装时会覆盖为脚本来源的版本并在输出里说明）。
+
+> 第 5 步是唯一需要联网的一步。如果机器上没装 npm 或装不上，手动补一条也一样：
+> `cd frontend; npm install yaml`。
 
 > 这个脚本是本仓库的演示用安装器，不是 FactBind 的产品形态。
 > 产品化之后，第 1、2 步变成"装一个包"，第 3 步变成一个初始化命令，都不该由使用者手动拷文件。
