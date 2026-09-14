@@ -28,13 +28,17 @@
 
 ```powershell
 # 先看它要改什么（不会落盘）
-pwsh -NoProfile -File scripts/install-factbind.ps1 -Target . -DryRun
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1 -Target . -DryRun
 
 # 真装
-pwsh -NoProfile -File scripts/install-factbind.ps1 -Target .
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1 -Target .
 ```
 
 它会做四件事：
+
+> 命令里的 `powershell` 就是 Windows 自带的 Windows PowerShell 5.1，不需要额外安装。
+> 本机如果装了 PowerShell 7，把 `powershell` 换成 `pwsh` 也可以（脚本对两者都测过）。
+> `-ExecutionPolicy Bypass` 是为了避免系统执行策略禁止脚本运行，加着没有副作用。
 
 1. 拷入后端实现：`backend/src/main/java/com/example/middemo/factbind/`（9 个类）
 2. 拷入前端实现：`frontend/src/factbind/index.ts`

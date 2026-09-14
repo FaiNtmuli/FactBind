@@ -31,7 +31,11 @@
 |---|---|---|
 | JDK | 21+ | `java -version` |
 | Node | 20+ | `node -v` |
-| PowerShell | 7+（脚本用 `pwsh`） | `pwsh -v` |
+| PowerShell | 系统自带的 Windows PowerShell 5.1 即可 | `powershell -Command $PSVersionTable.PSVersion` |
+
+> 脚本对 **Windows PowerShell 5.1** 和 **PowerShell 7+** 都能跑，命令统一用 `powershell` 这个词。
+> 如果你本机装了 PowerShell 7，把下面的 `powershell` 换成 `pwsh` 也可以，效果一样。
+> 装了 7 但不确定的话别猜，直接用 `powershell`——它 Windows 上一定存在。
 
 ### 2.2 准备一个专用演示目录
 
@@ -148,10 +152,10 @@ return request<User>(`/api/users/${id}/status`, { method: 'PATCH', body: { statu
 
 ```powershell
 # 先看它要改什么，不落盘
-pwsh -NoProfile -File scripts/install-factbind.ps1 -Target . -DryRun
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1 -Target . -DryRun
 
 # 真装
-pwsh -NoProfile -File scripts/install-factbind.ps1 -Target .
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1 -Target .
 ```
 
 **会看到**（实测输出）：
