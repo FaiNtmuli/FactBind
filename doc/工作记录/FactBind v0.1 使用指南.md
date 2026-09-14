@@ -58,8 +58,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-factbind.ps1
 
 ```powershell
 cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=h2
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=h2"
 ```
+
+> PowerShell 里 `-D` 参数**必须加引号**，否则报 `Unknown lifecycle phase ".run.profiles=h2"`（实测过）。
+> 用 Git Bash / WSL / macOS 时加不加都行。
 
 前端：
 

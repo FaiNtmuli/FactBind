@@ -57,10 +57,14 @@ git worktree remove --force ../factbind-demo
 
 ```powershell
 cd backend
-./mvnw -o test          # 首次会下载 Maven 自身与全部依赖
+./mvnw test             # 首次会联网下载 Maven 自身 + 全部依赖，必须联网
 cd ../frontend
 npm ci                  # 装前端依赖
 ```
+
+> **首次预热千万别加 `-o`。** `-o` 是"离线模式"，在还没下载过依赖的机器上会直接失败
+> （实测报错：`Cannot access central (https://repo.maven.apache.org/maven2) in offline mode`）。
+> 预热跑通一次之后，后面想快、想离线演示，再加 `-o`。
 
 两条都成功跑过一次，现场节奏才是可预测的。
 
@@ -179,8 +183,10 @@ FactBind 安装完成：
 
 ```powershell
 cd backend
-./mvnw -o test
+./mvnw test
 ```
+
+（已经预热过，这里加 `-o` 走离线会更快；没预热过就去掉 `-o`。）
 
 **会看到**：
 
@@ -247,7 +253,7 @@ git checkout factbind-min -- `
   contracts/api.json
 
 cd backend
-./mvnw -o test
+./mvnw test
 ```
 
 **会看到**：`Tests run: 84, Failures: 0` —— 全部接口换成符号调用之后，测试依然全绿。
@@ -298,7 +304,7 @@ HTTP/1.1 422
 在 `contracts/api.json` 里把 `/api/users/{id}` 改成 `/api/people/{id}`，然后：
 
 ```powershell
-./mvnw -o test
+./mvnw test
 ```
 
 **实测结果**：
@@ -389,11 +395,11 @@ git diff --shortstat main factbind-min
 | 如果现场…… | 那就…… |
 |---|---|
 | 后端起不来，提示端口占用 | `netstat -ano \| findstr :8080` 找到 PID 结束掉，或临时换端口 |
-| `./mvnw` 卡在下载 | 说明预热没做；改用本机 Maven：`mvn -o test` |
+| `./mvnw` 卡在下载 | 说明预热没做；改用本机 Maven：`mvn test`（**不要加 `-o`**，冷机器离线必失败） |
 | 前端端口被占 | Vite 会自动换到 5174，按终端提示改浏览器地址 |
 | 现场把代码改坏了 | `git checkout -- .` 一键还原（演示目录是独立 worktree，随便还原） |
 | 时间不够 | 砍掉幕 7、8，保住幕 6（全场最有说服力的一幕） |
-| 现场没有网络 | 用预热好的依赖，Maven 全程加 `-o` 走离线 |
+| 现场没有网络 | 只有在**提前预热过**的前提下才行：Maven 全程加 `-o`，前端用 `npm ci --offline` |
 
 ---
 
