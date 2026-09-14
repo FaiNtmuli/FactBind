@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   把 FactBind 的"最小版"装进一个已有的 Spring Boot + React 项目（演示用，拷贝式安装）。
 
