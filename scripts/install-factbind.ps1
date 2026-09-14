@@ -7,7 +7,8 @@
     1. 拷入后端实现：backend/src/main/java/com/example/middemo/factbind/ 共 9 个类
     2. 拷入前端实现：frontend/src/factbind/index.ts
     3. 契约文件不存在时，拷入一份 contracts/api.yaml
-  4. 改两处配置：application.yml、vite.config.ts
+    4. 改两处配置：application.yml、vite.config.ts
+    5. 前端装一个依赖：yaml（契约是 YAML，前端要解析它）
 
   装完应用照常能跑（老的 @GetMapping 控制器继续工作）。接下来"人的活"是：
     · 把契约内容写对
@@ -111,6 +112,37 @@ if (Test-Path $vitePath) {
         if ($patched -eq $vite) { throw "vite.config.ts 里找不到 `server: {`，请手动加 fs.allow" }
         if (-not $DryRun) { [System.IO.File]::WriteAllText($vitePath, $patched, $encoding) }
         $changes.Add("配置：vite.config.ts 加 fs.allow")
+    }
+}
+
+# ── 5. 前端依赖：契约是 YAML，前端需要解析器 ───────────────────────────────────
+$pkgPath = Join-Path $root 'frontend/package.json'
+if (Test-Path $pkgPath) {
+    $pkg = [System.IO.File]::ReadAllText($pkgPath)
+    if ($pkg -match '"yaml"\s*:') {
+        $changes.Add("依赖：frontend/package.json 已有 yaml，跳过")
+    } elseif ($DryRun) {
+        $changes.Add("依赖：frontend 需要 yaml（会执行 npm install yaml）")
+    } else {
+        $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
+        if ($null -eq $npm) {
+            $npm = Get-Command npm -ErrorAction SilentlyContinue
+        }
+        if ($null -eq $npm) {
+            $changes.Add("依赖：没找到 npm —— 请手动执行   cd frontend; npm install yaml")
+        } else {
+            Push-Location (Join-Path $root 'frontend')
+            try {
+                & $npm.Source install yaml 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    $changes.Add("依赖：frontend 装好 yaml（契约解析用）")
+                } else {
+                    $changes.Add("依赖：npm install yaml 失败 —— 请手动执行   cd frontend; npm install yaml")
+                }
+            } finally {
+                Pop-Location
+            }
+        }
     }
 }
 
